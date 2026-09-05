@@ -24,7 +24,7 @@ func helloHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	response := Response{
-		Message: "hello from golang macroservice",
+		Message: "hello from golang microservice",
 	}
 
 	json.NewEncoder(w).Encode(response)
