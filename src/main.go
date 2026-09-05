@@ -14,7 +14,7 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	response := Response{
-		Message: "service is runnin",
+		Message: "service is running",
 	}
 
 	json.NewEncoder(w).Encode(response)
