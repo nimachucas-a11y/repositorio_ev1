@@ -1,0 +1,73 @@
+name: CD - Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build, test and deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 2. Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
+      - name: 3. Run tests
+        working-directory: ./src
+        run: go test ./...
+
+      - name: 4. Build Linux application
+        working-directory: ./src
+        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o microservice .
+
+      - name: 5. Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.AWS_SSH_KEY }}" > ~/.ssh/aws_key
+          chmod 600 ~/.ssh/aws_key
+          ssh-keyscan -H "${{ secrets.AWS_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: 6. Copy application to EC2
+        run: |
+          scp -i ~/.ssh/aws_key \
+            ./src/microservice \
+            "${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }}:/opt/microservice/microservice.new"
+
+      - name: 7. Install and restart application
+        run: |
+          ssh -i ~/.ssh/aws_key \
+            "${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }}" \
+            'mv /opt/microservice/microservice.new /opt/microservice/microservice &&
+             chmod +x /opt/microservice/microservice &&
+             sudo systemctl restart microservice &&
+             sudo systemctl is-active --quiet microservice'
+
+      - name: 8. Verify deployment
+        run: |
+          for i in {1..10}; do
+            if curl --fail --silent "http://${{ secrets.AWS_HOST }}:8080/health"; then
+              echo
+              echo "Deployment successful"
+              exit 0
+            fi
+
+            echo "Waiting for service..."
+            sleep 3
+          done
+
+          echo "Health check failed"
+          exit 1
