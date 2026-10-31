@@ -25,3 +25,11 @@ jobs:
       - name: Run tests
         working-directory: ./src
         run: go test ./...
+
+      - name: Setup Snyk
+        uses: snyk/actions/setup@11b673cfb4b0dc0d860a1323caa199d54950dcce
+
+      - name: Analyze source code with Snyk
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: snyk code test --org=e5f9abaf-af71-48d7-8c15-b8697f6c338b ./src

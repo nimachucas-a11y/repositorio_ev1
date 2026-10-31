@@ -1,265 +1,174 @@
-# Microservicio Go - Evaluación DevOps
+# Microservicio Go - Evaluación Parcial 2
 
-Proyecto desarrollado para la Evaluación Parcial N°1 de la asignatura Ingeniería DevOps.
+Proyecto de Ingeniería DevOps DOY0101. Reutiliza el microservicio de la evaluación anterior y configura pruebas, análisis de seguridad, contenedores y despliegue simulado en GitHub Actions.
 
-El proyecto consiste en un microservicio simple desarrollado en Go, utilizado como base para aplicar control de versiones con Git, trabajo colaborativo mediante GitHub y automatización de pruebas mediante GitHub Actions.
+Repositorio: [nimachucas-a11y/repositorio_ev1](https://github.com/nimachucas-a11y/repositorio_ev1).
 
-## Tecnologías utilizadas
+La documentacion anterior se conserva como [archivo historico de la Evaluacion 1](docs/evaluacion1.md).
 
-- Go
-- Git
-- GitHub
-- GitHub Actions
+## Integrantes
 
-## Estructura del proyecto
+- Integrante 1: **[Completar nombre]**.
+- Integrante 2: **[Completar nombre]**.
 
-```text
-repositorio_ev1/
-├── .github/
-│   └── workflows/
-│       └── ci.yml
-├── src/
-│   ├── go.mod
-│   ├── main.go
-│   └── main_test.go
-└── README.md
-```
+## Aplicación y respuestas
 
-El código fuente del microservicio se encuentra dentro de `src/`.
+El módulo está en `src/`, declara Go `1.26.1` y no tiene dependencias externas declaradas. El servidor escucha en el puerto `8080` y responde JSON:
 
-## Ejecución del proyecto
+| Ruta | Estado esperado | Respuesta esperada |
+|---|---|---|
+| `/health` | `200` | `{"message":"service is running"}` |
+| `/hello` | `200` | `{"message":"hello from golang microservice"}` |
+| `/version` | `200` | `{"message":"version 1.0.0"}` |
 
-Para ejecutar el microservicio:
+La respuesta de `/health` conserva la correccion ya publicada en `main`. No hay base de datos, login ni operaciones CRUD.
 
-```bash
-cd src
-go run .
-```
+## Archivos principales
 
-El servidor se ejecuta localmente en:
-
-```text
-http://localhost:8080
-```
-
-## Endpoints
-
-El microservicio contiene los siguientes endpoints:
-
-### GET /health
-
-Permite consultar el estado del servicio.
-
-Ejemplo de respuesta:
-
-```json
-{
-  "message": "service is running"
-}
-```
-
-### GET /hello
-
-Retorna un mensaje de bienvenida del microservicio.
-
-### GET /version
-
-Retorna la versión actual del servicio.
-
-## Pruebas
-
-El proyecto contiene pruebas automatizadas para verificar el funcionamiento de los endpoints.
-
-Para ejecutarlas localmente:
-
-```bash
-cd src
-go test ./...
-```
-
-Estas pruebas también son ejecutadas automáticamente mediante GitHub Actions.
-
----
-
-# Estrategia de ramificación
-
-Para el desarrollo del proyecto se utiliza una estrategia basada en GitFlow.
-
-Las ramas principales son:
-
-- `main`: contiene la versión estable del proyecto.
-- `develop`: contiene los cambios que se encuentran en desarrollo e integración.
-- `feature/*`: se utiliza para desarrollar nuevas funcionalidades.
-- `hotfix/*`: se utiliza para realizar correcciones sobre errores detectados.
-
-## Convención de nombres de ramas
-
-Las ramas utilizan nombres descriptivos y el siguiente formato:
-
-```text
-feature/<nombre-de-funcionalidad>
-hotfix/<nombre-de-correccion>
-```
-
-Durante el desarrollo se utilizaron ramas como:
-
-```text
-feature/agregar-endpoint-version
-feature/agregar-tests
-feature/configurar-ci
-hotfix/corregir-mensaje-health
-```
-
-## Flujo para nuevas funcionalidades
-
-Las funcionalidades parten desde `develop`.
-
-```text
-develop
-   │
-   └── feature/nombre
-           │
-           └── Pull Request
-                    │
-                    ▼
-                 develop
-```
-
-Flujo utilizado:
-
-1. Actualizar la rama `develop`.
-2. Crear una rama `feature/*`.
-3. Implementar el cambio.
-4. Realizar los commits correspondientes.
-5. Publicar la rama en GitHub.
-6. Crear un Pull Request hacia `develop`.
-7. Revisar los cambios.
-8. Realizar el merge.
-
-## Flujo para Hotfix
-
-Los errores que requieren una corrección se trabajan mediante ramas `hotfix/*`.
-
-```text
-main
- │
- └── hotfix/nombre
-          │
-          └── Pull Request
-                   │
-                   ▼
-                  main
-```
-
-Una vez aplicada una corrección, el cambio debe mantenerse sincronizado con la rama de desarrollo para evitar que el error vuelva a aparecer en versiones futuras.
-
----
-
-# Convención de commits
-
-Se utilizan mensajes de commit cortos y descriptivos.
-
-Los principales prefijos utilizados son:
-
-| Prefijo | Uso |
+| Archivo | Contenido |
 |---|---|
-| `feat:` | Nueva funcionalidad |
-| `fix:` | Corrección de errores |
-| `test:` | Creación o modificación de pruebas |
-| `ci:` | Cambios relacionados con integración continua |
-| `docs:` | Cambios de documentación |
+| `src/main.go` | Servidor y handlers HTTP |
+| `src/main_test.go` | Pruebas de los tres handlers |
+| `Dockerfile` | Compilación Go en una etapa e imagen final `scratch` con usuario no root |
+| `compose.yaml` | Imagen, puertos, recursos y restricciones del contenedor |
+| `.github/workflows/ci.yml` | Pruebas y Snyk Code en CI |
+| `.github/workflows/deploy.yml` | Construcción Docker y despliegue simulado |
+| `.github/dependabot.yml` | Revisión semanal de Go, Docker y GitHub Actions |
 
-Ejemplos:
+## Pruebas y controles
 
-```text
-feat: add version endpoint
-fix: correct health endpoint message
-test: add endpoint tests
-ci: add GitHub Actions workflow
-docs: update README
-```
+Cada prueba Go usa `httptest` y comprueba HTTP `200`, `Content-Type: application/json`, JSON válido y el mensaje de su ruta. No necesita iniciar un servidor externo.
 
----
+Snyk Code analiza `src/` en la organización `nikopatrick`, identificada en el workflow por `e5f9abaf-af71-48d7-8c15-b8697f6c338b`. El token se obtiene desde un secreto de GitHub; no se almacena en el código.
 
-# Pull Requests y revisión
+En esta configuración, una prueba fallida, un hallazgo de Snyk Code o un error del análisis detiene el job. No se configuró `continue-on-error` ni un filtro de severidad.
 
-Los cambios desarrollados en ramas `feature/*` se integran a `develop` mediante Pull Requests.
+Dependabot revisa semanalmente los ecosistemas `gomod` en `/src`, `docker` en `/` y `github-actions` en `/`. La configuración debe estar en la rama predeterminada de GitHub para activarse. Los PR de actualización no se fusionan automáticamente.
 
-Los cambios correspondientes a `hotfix/*` se integran mediante Pull Requests hacia `main`.
+## Configuración necesaria en GitHub
 
-Antes de realizar un merge se revisan los cambios incluidos en el Pull Request para comprobar que correspondan a la funcionalidad o corrección desarrollada.
+En el repositorio:
 
-El uso de Pull Requests permite mantener un historial de los cambios realizados y facilita la trazabilidad del código.
+1. En `Settings > Secrets and variables > Actions`, guardar el token de Snyk como secreto de repositorio `SNYK_TOKEN`.
+2. En `Settings > Secrets and variables > Dependabot`, guardar también `SNYK_TOKEN` para que los PR de Dependabot puedan ejecutar el análisis. Los secretos de Actions y Dependabot son almacenes separados.
+3. En la configuración de seguridad, habilitar o comprobar `Dependabot alerts` y `Dependabot security updates`.
+4. Verificar que Actions esté habilitado y que el token tenga acceso a la organización de Snyk con Snyk Code activado. Renovarlo cuando venza.
 
----
+No copiar tokens a archivos, logs ni capturas. Los PR desde forks no reciben los secretos normales de Actions; este proyecto no incorpora un mecanismo especial para esos PR.
 
-# Integración continua
+## Flujo de integración continua
 
-El proyecto utiliza GitHub Actions para automatizar la ejecución de pruebas.
+`Go CI` se activa con un push a `develop` o con un pull request dirigido a `main`.
 
-El workflow se encuentra en:
+1. Descarga el repositorio.
+2. Prepara Go.
+3. Ejecuta las pruebas desde `src/`.
+4. Instala Snyk y ejecuta el análisis del código.
 
-```text
-.github/workflows/ci.yml
-```
+Un push a una rama de trabajo sin PR a `main` no activa este workflow con los eventos actuales.
 
-El pipeline se ejecuta automáticamente cuando ocurre alguno de los siguientes eventos:
+## Despliegue simulado
 
-```text
-push → develop
-pull request → main
-```
+`CD - Simulated deployment` se activa con un push a `main`, por ejemplo al fusionar un PR.
 
-El flujo de CI realiza los siguientes pasos:
+1. Registra el commit y la URL de ejecución.
+2. Ejecuta pruebas y Snyk Code.
+3. Valida la configuración Compose y construye la imagen `microservicio-usuarios:<SHA-del-commit>`.
+4. Levanta dos réplicas con Compose usando la imagen construida, sin reconstruirla ni descargar otra.
+5. Obtiene los puertos asignados, espera disponibilidad y comprueba las tres rutas en cada réplica.
+6. Reúne evidencias y las publica como artifact.
+7. Limpia los contenedores, incluso si hay fallos.
 
-```text
-Cambio en el repositorio
-        │
-        ▼
-GitHub Actions
-        │
-        ▼
-Checkout del código
-        │
-        ▼
-Configuración de Go
-        │
-        ▼
-go test ./...
-        │
-        ▼
-Resultado del pipeline
-```
+La aplicación corre temporalmente en el runner de GitHub. No queda un servidor público después del job. Este workflow reemplaza el envío anterior del ejecutable a EC2; los secretos AWS no se utilizan aquí.
 
-Como el módulo Go se encuentra dentro de `src/`, las pruebas se ejecutan utilizando ese directorio como directorio de trabajo.
+## Compose y escalabilidad configurada
 
-El objetivo del workflow es detectar automáticamente problemas en el código antes de integrar cambios importantes en la rama estable.
+Compose utiliza `IMAGE_TAG`, con valor por defecto `local`; el workflow lo establece con el SHA del commit. La imagen final ejecuta el servicio con usuario no root.
 
----
+Cada contenedor tiene un límite inicial de `0.50` CPU y `128m` de memoria, sistema de archivos de sólo lectura, capacidades eliminadas y restricción de nuevos privilegios. Estos límites no son una medición de carga ni una garantía de rendimiento.
 
-# Control de versiones
+Los puertos anfitriones se asignan dinámicamente y se publican sólo en `127.0.0.1`. El puerto interno continúa siendo `8080`. La publicación dinámica permite que dos réplicas convivan sin intentar ocupar el mismo puerto del runner.
 
-Git se utiliza para mantener la trazabilidad de los cambios realizados durante el desarrollo.
+El workflow inicia dos réplicas y comprueba ambas. Esto configura escalado manual mediante Compose; no incorpora balanceador ni escalado automático. El resultado efectivo se acredita con la ejecución y sus logs.
 
-Cada funcionalidad o corrección se desarrolla de forma aislada en su propia rama y posteriormente se integra mediante Pull Requests.
+No hay healthcheck dentro de la imagen `scratch`; la disponibilidad y las respuestas se verifican desde el runner.
 
-Esto permite mantener un historial de:
+## Evidencias y trazabilidad
 
-- ramas utilizadas;
-- commits realizados;
-- funcionalidades agregadas;
-- correcciones realizadas;
-- Pull Requests;
-- merges;
-- ejecuciones de integración continua.
+En `Actions`, abrir la ejecución de `CD - Simulated deployment` correspondiente al commit y descargar el artifact:
 
----
+`simulated-deployment-<SHA-del-commit>`
 
-# Justificación de la estrategia de ramificación
+Su contenido incluye:
 
-Se utilizo la ramificacion adecuada para utilizar GitFlow, ya que esto permite que el proyecto sea mantenible en el tiempo y evita conflictos en produccion.
----
+- `deployment.txt`: commit, imagen y enlace a la ejecución.
+- `tests.log`, `snyk.log` y `build.log`: resultados de los controles y construcción.
+- `image.json`: identificación de la imagen construida.
+- `endpoints.log`: verificaciones de las rutas desplegadas.
+- `replicas.json`: identificación, direcciones y resultados de las dos réplicas.
+- `containers.txt`, `containers.log` y `compose.yaml`: estado, logs y configuración usada.
 
-# Uso de Inteligencia Artificial
+Si un paso anterior falla, algunos archivos pueden no existir. La recolección y publicación de evidencias se intentan incluso ante fallos; la existencia de un artifact no significa que el pipeline haya pasado.
 
-Se utiliza ChatGPT como herramienta de apoyo, de manera chatbot (no agentica) ya que me permitio ir paso a paso construyendo el repo, equivocandome en el camino y corrigiendo errores que siento que fue donde mas aprendi en esta ocasion.
+## Relación con la pauta
+
+| Indicador | Implementación | Evidencia a comprobar |
+|---|---|---|
+| IE1: contenedores | `Dockerfile` y construcción en Actions | `build.log`, `image.json` |
+| IE2: pruebas | Pruebas de handlers en CI y despliegue | Job exitoso y `tests.log` |
+| IE3: seguridad y escalabilidad | Dependabot, Snyk Code, límites y réplicas | Configuración de seguridad, `snyk.log` y comprobaciones de las réplicas |
+| IE4: despliegue y trazabilidad | Workflow simulado, etiqueta SHA y este README | Ejecución del mismo commit y artifact asociado |
+| IE5: orquestación | Compose y dos réplicas en el despliegue | Estado de contenedores y respuestas de ambas instancias |
+
+## Estado de validación antes de la entrega
+
+El estudiante compartió una ejecución local de Snyk Code con `Total issues: 0`. Las pruebas Go mejoradas pasaron en la ejecución local realizada durante la preparación. Eso no reemplaza la ejecución del workflow final.
+
+La configuración de contenedores y Actions se preparó localmente. Antes de entregar deben completarse y registrarse los resultados reales de GitHub:
+
+En la revisión remota previa a la entrega se confirmó que existe `SNYK_TOKEN` tanto en los secretos de Actions como en los de Dependabot, sin leer sus valores. `Dependabot alerts` y `Dependabot security updates` quedaron habilitados y su estado se confirmó mediante la API de GitHub. La ejecución del workflow final sigue pendiente.
+
+- Commit evaluado: **[Completar SHA]**.
+- Enlace al PR y resultado de CI: **[Completar]**.
+- Enlace a ejecución de despliegue exitoso: **[Completar]**.
+- Artifact descargado y revisado: **[Completar]**.
+- Dos réplicas y seis comprobaciones de endpoints confirmadas: **[Completar con resultado real]**.
+
+No se declara una cobertura porcentual ni una ejecución Docker exitosa sin su evidencia.
+
+## Declaración de uso de IA
+
+Se utilizó Codex como apoyo para explicar conceptos y preparar el Dockerfile, las ampliaciones de pruebas, Compose, Dependabot, los workflows de GitHub Actions y esta documentación. También se consultó para interpretar resultados y errores de Snyk. El uso incluyó generación de código y configuración, no sólo corrección de redacción.
+
+Referencia de la herramienta utilizada: [OpenAI Codex](https://openai.com/codex/).
+
+La validación disponible y los resultados pendientes se distinguen en este README. Los integrantes deben revisar esta declaración y comprobar que describa su uso real de IA y las condiciones de la pauta.
+
+## Justificaciones técnicas del equipo
+
+**[Pendiente: redactar por el equipo, sin redacción de IA, conforme a la pauta.]**
+
+## Conclusiones del equipo
+
+**[Pendiente: redactar por el equipo, sin redacción de IA, conforme a la pauta.]**
+
+### Reflexión individual - integrante 1
+
+**[Pendiente: completar nombre y reflexión propia de aprendizaje y contribución, sin apoyo de IA.]**
+
+### Reflexión individual - integrante 2
+
+**[Pendiente: completar nombre y reflexión propia de aprendizaje y contribución, sin apoyo de IA.]**
+
+## Entrega
+
+Completar los apartados personales, verificar una ejecución exitosa del commit final y comprobar que el docente pueda acceder al repositorio. Entregar el enlace del repositorio en AVA y por correo docente dentro del plazo de la asignatura. La pauta no fija una fecha calendario en el documento ni exige un video o una lista concreta de capturas.
+
+## Referencias técnicas
+
+- [Docker: construcción multietapa](https://docs.docker.com/build/building/multi-stage/).
+- [Docker Compose: servicios](https://docs.docker.com/reference/compose-file/services/).
+- [Snyk: análisis de código con CLI](https://docs.snyk.io/developer-tools/snyk-cli/commands/code-test).
+- [GitHub: opciones de Dependabot](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference).
+- [GitHub: secretos de Actions](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets).
+- [Bibliotecas Duoc UC: guía de inteligencia artificial y citación](https://bibliotecas.duoc.cl/ia). Los integrantes deben completar la cita de su uso conforme a la guía y a las indicaciones de la asignatura.
