@@ -1,4 +1,4 @@
-FROM golang:1.26.1 AS build
+FROM golang:1.27.3 AS build
 WORKDIR /app
 COPY src/ .
 RUN CGO_ENABLED=0 go build -o /out/microservicio .
