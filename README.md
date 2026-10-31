@@ -4,6 +4,8 @@ Proyecto de Ingeniería DevOps DOY0101. Reutiliza el microservicio de la evaluac
 
 Repositorio: [nimachucas-a11y/repositorio_ev1](https://github.com/nimachucas-a11y/repositorio_ev1).
 
+La documentacion anterior se conserva como [archivo historico de la Evaluacion 1](docs/evaluacion1.md).
+
 ## Integrantes
 
 - Integrante 1: **[Completar nombre]**.
@@ -15,11 +17,11 @@ El módulo está en `src/`, declara Go `1.26.1` y no tiene dependencias externas
 
 | Ruta | Estado esperado | Respuesta esperada |
 |---|---|---|
-| `/health` | `200` | `{"message":"service is runnin"}` |
+| `/health` | `200` | `{"message":"service is running"}` |
 | `/hello` | `200` | `{"message":"hello from golang microservice"}` |
 | `/version` | `200` | `{"message":"version 1.0.0"}` |
 
-El texto de `/health` conserva la respuesta original del servicio. No hay base de datos, login ni operaciones CRUD.
+La respuesta de `/health` conserva la correccion ya publicada en `main`. No hay base de datos, login ni operaciones CRUD.
 
 ## Archivos principales
 

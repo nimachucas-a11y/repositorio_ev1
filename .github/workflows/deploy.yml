@@ -82,7 +82,7 @@ jobs:
           print(f"Running replicas: {len(container_ids)}; containers: {container_ids}")
 
           expected_messages = {
-              "/health": "service is runnin",
+              "/health": "service is running",
               "/hello": "hello from golang microservice",
               "/version": "version 1.0.0",
           }

@@ -29,8 +29,8 @@ func TestHealthHandler(t *testing.T) {
 		t.Fatalf("expected valid JSON response, got error: %v", err)
 	}
 
-	if body.Message != "service is runnin" {
-		t.Errorf("expected message %q, got %q", "service is runnin", body.Message)
+	if body.Message != "service is running" {
+		t.Errorf("expected message %q, got %q", "service is running", body.Message)
 	}
 }
 
