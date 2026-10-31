@@ -1,4 +1,4 @@
-name: CD - Deploy to AWS EC2
+name: CD - Simulated deployment
 
 on:
   push:
@@ -9,65 +9,148 @@ permissions:
   contents: read
 
 concurrency:
-  group: production
+  group: simulated-deployment
   cancel-in-progress: true
+
+env:
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
   deploy:
-    name: Build, test and deploy
+    name: Test, analyze, build and simulate deployment
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
 
     steps:
-      - name: 1. Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: 2. Setup Go
+      - name: Prepare deployment evidence
+        run: |
+          mkdir -p evidence
+          printf 'Commit: %s\nImage: microservicio-usuarios:%s\nRun: %s\n' \
+            "$GITHUB_SHA" "$IMAGE_TAG" \
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            > evidence/deployment.txt
+
+      - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: 'stable'
 
-      - name: 3. Run tests
+      - name: Run tests
         working-directory: ./src
-        run: go test ./...
+        run: go test -v ./... 2>&1 | tee ../evidence/tests.log
 
-      - name: 4. Build Linux application
-        working-directory: ./src
-        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o microservice .
+      - name: Setup Snyk
+        uses: snyk/actions/setup@11b673cfb4b0dc0d860a1323caa199d54950dcce
 
-      - name: 5. Configure SSH
+      - name: Analyze source code with Snyk
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: snyk code test --org=e5f9abaf-af71-48d7-8c15-b8697f6c338b ./src 2>&1 | tee evidence/snyk.log
+
+      - name: Build Docker image
         run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.AWS_SSH_KEY }}" > ~/.ssh/aws_key
-          chmod 600 ~/.ssh/aws_key
-          ssh-keyscan -H "${{ secrets.AWS_HOST }}" >> ~/.ssh/known_hosts
+          docker compose config --quiet
+          docker compose build 2>&1 | tee evidence/build.log
+          docker image inspect "microservicio-usuarios:$IMAGE_TAG" > evidence/image.json
 
-      - name: 6. Copy application to EC2
+      - name: Start simulated deployment
+        run: docker compose up -d --no-build --pull never --scale microservicio=2
+
+      - name: Verify deployed endpoints
         run: |
-          scp -i ~/.ssh/aws_key \
-            ./src/microservice \
-            "${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }}:/opt/microservice/microservice.new"
+          python3 - <<'PY' 2>&1 | tee evidence/endpoints.log
+          import json
+          import subprocess
+          import time
+          import urllib.error
+          import urllib.request
 
-      - name: 7. Install and restart application
+          expected_replicas = 2
+          container_ids = subprocess.check_output(
+              ["docker", "compose", "ps", "--status", "running", "-q", "microservicio"],
+              text=True,
+          ).splitlines()
+          if len(container_ids) != expected_replicas:
+              raise RuntimeError(
+                  f"Expected {expected_replicas} running replicas, got {len(container_ids)}"
+              )
+          print(f"Running replicas: {len(container_ids)}; containers: {container_ids}")
+
+          expected_messages = {
+              "/health": "service is runnin",
+              "/hello": "hello from golang microservice",
+              "/version": "version 1.0.0",
+          }
+
+          replicas = []
+          addresses = set()
+          for index in range(1, expected_replicas + 1):
+              address = subprocess.check_output(
+                  ["docker", "compose", "port", "--index", str(index), "microservicio", "8080"],
+                  text=True,
+              ).strip()
+              if not address.startswith("127.0.0.1:") or address in addresses:
+                  raise RuntimeError(f"Replica {index}: unexpected or repeated address {address!r}")
+              addresses.add(address)
+              base_url = f"http://{address}"
+              print(f"Replica {index}: {base_url}")
+
+              for attempt in range(30):
+                  try:
+                      with urllib.request.urlopen(base_url + "/health", timeout=2) as response:
+                          if response.status == 200:
+                              break
+                  except (urllib.error.URLError, TimeoutError):
+                      pass
+                  time.sleep(1)
+              else:
+                  raise RuntimeError(f"Replica {index} did not become ready")
+
+              results = []
+              for path, expected_message in expected_messages.items():
+                  with urllib.request.urlopen(base_url + path, timeout=5) as response:
+                      status = response.status
+                      content_type = response.headers.get_content_type()
+                      body = json.load(response)
+
+                  if status != 200:
+                      raise RuntimeError(f"Replica {index} {path}: expected HTTP 200, got {status}")
+                  if content_type != "application/json":
+                      raise RuntimeError(f"Replica {index} {path}: expected JSON, got {content_type}")
+                  if not isinstance(body, dict) or body.get("message") != expected_message:
+                      raise RuntimeError(f"Replica {index} {path}: unexpected response {body!r}")
+
+                  results.append({"path": path, "status": status, "body": body})
+                  print(f"PASS replica {index} {path}: HTTP {status}, {content_type}, {json.dumps(body)}")
+
+              replicas.append({"index": index, "address": address, "results": results})
+
+          with open("evidence/replicas.json", "w", encoding="utf-8") as output:
+              json.dump({"container_ids": container_ids, "replicas": replicas}, output, indent=2)
+          print(f"PASS: {expected_replicas} replicas, {expected_replicas * len(expected_messages)} endpoint checks")
+          PY
+
+      - name: Collect container evidence
+        if: always()
         run: |
-          ssh -i ~/.ssh/aws_key \
-            "${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }}" \
-            'mv /opt/microservice/microservice.new /opt/microservice/microservice &&
-             chmod +x /opt/microservice/microservice &&
-             sudo systemctl restart microservice &&
-             sudo systemctl is-active --quiet microservice'
+          mkdir -p evidence
+          docker compose ps -a > evidence/containers.txt 2>&1 || true
+          docker compose logs --no-color > evidence/containers.log 2>&1 || true
+          docker compose config > evidence/compose.yaml 2>&1 || true
 
-      - name: 8. Verify deployment
-        run: |
-          for i in {1..10}; do
-            if curl --fail --silent "http://${{ secrets.AWS_HOST }}:8080/health"; then
-              echo
-              echo "Deployment successful"
-              exit 0
-            fi
+      - name: Upload deployment evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: simulated-deployment-${{ github.sha }}
+          path: evidence/
+          if-no-files-found: error
 
-            echo "Waiting for service..."
-            sleep 3
-          done
-
-          echo "Health check failed"
-          exit 1
+      - name: Clean up simulated deployment
+        if: always()
+        run: docker compose down --remove-orphans
