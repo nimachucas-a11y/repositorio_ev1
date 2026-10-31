@@ -120,21 +120,25 @@ Si un paso anterior falla, algunos archivos pueden no existir. La recolección y
 | IE4: despliegue y trazabilidad | Workflow simulado, etiqueta SHA y este README | Ejecución del mismo commit y artifact asociado |
 | IE5: orquestación | Compose y dos réplicas en el despliegue | Estado de contenedores y respuestas de ambas instancias |
 
-## Estado de validación antes de la entrega
+## Resultados verificados
 
-El estudiante compartió una ejecución local de Snyk Code con `Total issues: 0`. Las pruebas Go mejoradas pasaron en la ejecución local realizada durante la preparación. Eso no reemplaza la ejecución del workflow final.
+El siguiente registro corresponde a una ejecución real de GitHub Actions del código integrado mediante el [PR #10](https://github.com/nimachucas-a11y/repositorio_ev1/pull/10). Es un checkpoint de evidencia; las actualizaciones posteriores de documentación tienen sus propios commits y ejecuciones.
 
-La configuración de contenedores y Actions se preparó localmente. Antes de entregar deben completarse y registrarse los resultados reales de GitHub:
+- Commit desplegado: `d2f56999e48f94cea8a445b5673730f10fd04691`.
+- [CI del PR](https://github.com/nimachucas-a11y/repositorio_ev1/actions/runs/41234098666): pruebas y Snyk Code aprobados.
+- [Despliegue simulado 41234506100](https://github.com/nimachucas-a11y/repositorio_ev1/actions/runs/41234506100): ejecución exitosa, incluidos construcción, arranque, comprobaciones y limpieza.
+- Imagen construida: `microservicio-usuarios:d2f56999e48f94cea8a445b5673730f10fd04691`.
+- ID de imagen: `sha256:9141d20717dbb060dcd1a9ea2402881b7237504684ca1ac1a98d378f6d82c818`.
+- Artifact descargado y revisado: `simulated-deployment-d2f56999e48f94cea8a445b5673730f10fd04691`, disponible en la ejecución enlazada.
+- Snyk Code: `Total issues: 0` en esa ejecución; esto no garantiza ausencia de toda vulnerabilidad.
+- Réplicas confirmadas: dos contenedores distintos, publicados en `127.0.0.1:32768` y `127.0.0.1:32769` durante ese job.
+- Comprobaciones: seis respuestas HTTP `200`, con `application/json` y los mensajes esperados; `/health`, `/hello` y `/version` en cada réplica.
 
-En la revisión remota previa a la entrega se confirmó que existe `SNYK_TOKEN` tanto en los secretos de Actions como en los de Dependabot, sin leer sus valores. `Dependabot alerts` y `Dependabot security updates` quedaron habilitados y su estado se confirmó mediante la API de GitHub. La ejecución del workflow final sigue pendiente.
+`replicas.json`, `endpoints.log`, `containers.txt` e `image.json` permiten comprobar estos resultados y su relación con el commit. Los puertos son temporales: no son direcciones de un servicio que siga disponible después del job.
 
-- Commit evaluado: **[Completar SHA]**.
-- Enlace al PR y resultado de CI: **[Completar]**.
-- Enlace a ejecución de despliegue exitoso: **[Completar]**.
-- Artifact descargado y revisado: **[Completar]**.
-- Dos réplicas y seis comprobaciones de endpoints confirmadas: **[Completar con resultado real]**.
+Se confirmó que existe `SNYK_TOKEN` tanto en los secretos de Actions como en los de Dependabot, sin leer sus valores. `Dependabot alerts` y `Dependabot security updates` están habilitados y su estado se confirmó mediante la API de GitHub.
 
-No se declara una cobertura porcentual ni una ejecución Docker exitosa sin su evidencia.
+No se declara una cobertura porcentual. Antes de entregar, revisar también el estado de Actions correspondiente al commit final y completar los apartados propios del equipo.
 
 ## Declaración de uso de IA
 
