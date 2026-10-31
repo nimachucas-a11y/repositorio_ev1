@@ -135,6 +135,9 @@ jobs:
           print(f"PASS: {expected_replicas} replicas, {expected_replicas * len(expected_messages)} endpoint checks")
           PY
 
+      - name: Sample replica stability and resource usage
+        run: python3 .github/scripts/verify_stability.py 2>&1 | tee evidence/stability.log
+
       - name: Collect container evidence
         if: always()
         run: |
