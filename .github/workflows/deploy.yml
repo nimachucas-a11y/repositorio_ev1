@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Prepare deployment evidence
         run: |
@@ -36,7 +36,7 @@ jobs:
             > evidence/deployment.txt
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version: 'stable'
 
@@ -134,6 +134,9 @@ jobs:
               json.dump({"container_ids": container_ids, "replicas": replicas}, output, indent=2)
           print(f"PASS: {expected_replicas} replicas, {expected_replicas * len(expected_messages)} endpoint checks")
           PY
+
+      - name: Sample replica stability and resource usage
+        run: python3 .github/scripts/verify_stability.py 2>&1 | tee evidence/stability.log
 
       - name: Collect container evidence
         if: always()

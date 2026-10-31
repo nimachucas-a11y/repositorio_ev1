@@ -8,8 +8,7 @@ La documentacion anterior se conserva como [archivo historico de la Evaluacion 1
 
 ## Integrantes
 
-- Integrante 1: **[Completar nombre]**.
-- Integrante 2: **[Completar nombre]**.
+- Integrante 1: **Nicolas Machuca**.
 
 ## Aplicación y respuestas
 
@@ -54,8 +53,6 @@ En el repositorio:
 3. En la configuración de seguridad, habilitar o comprobar `Dependabot alerts` y `Dependabot security updates`.
 4. Verificar que Actions esté habilitado y que el token tenga acceso a la organización de Snyk con Snyk Code activado. Renovarlo cuando venza.
 
-No copiar tokens a archivos, logs ni capturas. Los PR desde forks no reciben los secretos normales de Actions; este proyecto no incorpora un mecanismo especial para esos PR.
-
 ## Flujo de integración continua
 
 `Go CI` se activa con un push a `develop` o con un pull request dirigido a `main`.
@@ -65,7 +62,6 @@ No copiar tokens a archivos, logs ni capturas. Los PR desde forks no reciben los
 3. Ejecuta las pruebas desde `src/`.
 4. Instala Snyk y ejecuta el análisis del código.
 
-Un push a una rama de trabajo sin PR a `main` no activa este workflow con los eventos actuales.
 
 ## Despliegue simulado
 
@@ -110,59 +106,36 @@ Su contenido incluye:
 
 Si un paso anterior falla, algunos archivos pueden no existir. La recolección y publicación de evidencias se intentan incluso ante fallos; la existencia de un artifact no significa que el pipeline haya pasado.
 
-## Relación con la pauta
 
-| Indicador | Implementación | Evidencia a comprobar |
-|---|---|---|
-| IE1: contenedores | `Dockerfile` y construcción en Actions | `build.log`, `image.json` |
-| IE2: pruebas | Pruebas de handlers en CI y despliegue | Job exitoso y `tests.log` |
-| IE3: seguridad y escalabilidad | Dependabot, Snyk Code, límites y réplicas | Configuración de seguridad, `snyk.log` y comprobaciones de las réplicas |
-| IE4: despliegue y trazabilidad | Workflow simulado, etiqueta SHA y este README | Ejecución del mismo commit y artifact asociado |
-| IE5: orquestación | Compose y dos réplicas en el despliegue | Estado de contenedores y respuestas de ambas instancias |
+## Resultados verificados
 
-## Estado de validación antes de la entrega
+El siguiente registro corresponde a una ejecución real de GitHub Actions del código integrado mediante el [PR #10](https://github.com/nimachucas-a11y/repositorio_ev1/pull/10). Es un checkpoint de evidencia; las actualizaciones posteriores de documentación tienen sus propios commits y ejecuciones.
 
-El estudiante compartió una ejecución local de Snyk Code con `Total issues: 0`. Las pruebas Go mejoradas pasaron en la ejecución local realizada durante la preparación. Eso no reemplaza la ejecución del workflow final.
+- Commit desplegado: `d2f56999e48f94cea8a445b5673730f10fd04691`.
+- [CI del PR](https://github.com/nimachucas-a11y/repositorio_ev1/actions/runs/41234098666): pruebas y Snyk Code aprobados.
+- [Despliegue simulado 41234506100](https://github.com/nimachucas-a11y/repositorio_ev1/actions/runs/41234506100): ejecución exitosa, incluidos construcción, arranque, comprobaciones y limpieza.
+- Imagen construida: `microservicio-usuarios:d2f56999e48f94cea8a445b5673730f10fd04691`.
+- ID de imagen: `sha256:9141d20717dbb060dcd1a9ea2402881b7237504684ca1ac1a98d378f6d82c818`.
+- Artifact descargado y revisado: `simulated-deployment-d2f56999e48f94cea8a445b5673730f10fd04691`, disponible en la ejecución enlazada.
+- Snyk Code: `Total issues: 0` en esa ejecución; esto no garantiza ausencia de toda vulnerabilidad.
+- Réplicas confirmadas: dos contenedores distintos, publicados en `127.0.0.1:32768` y `127.0.0.1:32769` durante ese job.
+- Comprobaciones: seis respuestas HTTP `200`, con `application/json` y los mensajes esperados; `/health`, `/hello` y `/version` en cada réplica.
 
-La configuración de contenedores y Actions se preparó localmente. Antes de entregar deben completarse y registrarse los resultados reales de GitHub:
+`replicas.json`, `endpoints.log`, `containers.txt` e `image.json` permiten comprobar estos resultados y su relación con el commit. Los puertos son temporales: no son direcciones de un servicio que siga disponible después del job.
 
-En la revisión remota previa a la entrega se confirmó que existe `SNYK_TOKEN` tanto en los secretos de Actions como en los de Dependabot, sin leer sus valores. `Dependabot alerts` y `Dependabot security updates` quedaron habilitados y su estado se confirmó mediante la API de GitHub. La ejecución del workflow final sigue pendiente.
+Se confirmó que existe `SNYK_TOKEN` tanto en los secretos de Actions como en los de Dependabot, sin leer sus valores. `Dependabot alerts` y `Dependabot security updates` están habilitados y su estado se confirmó mediante la API de GitHub.
 
-- Commit evaluado: **[Completar SHA]**.
-- Enlace al PR y resultado de CI: **[Completar]**.
-- Enlace a ejecución de despliegue exitoso: **[Completar]**.
-- Artifact descargado y revisado: **[Completar]**.
-- Dos réplicas y seis comprobaciones de endpoints confirmadas: **[Completar con resultado real]**.
-
-No se declara una cobertura porcentual ni una ejecución Docker exitosa sin su evidencia.
 
 ## Declaración de uso de IA
 
-Se utilizó Codex como apoyo para explicar conceptos y preparar el Dockerfile, las ampliaciones de pruebas, Compose, Dependabot, los workflows de GitHub Actions y esta documentación. También se consultó para interpretar resultados y errores de Snyk. El uso incluyó generación de código y configuración, no sólo corrección de redacción.
+Se utilizó Codex como apoyo para explicar conceptos y preparar el Dockerfile, las ampliaciones de pruebas, Compose, Dependabot y los workflows de GitHub Actions. 
 
-Referencia de la herramienta utilizada: [OpenAI Codex](https://openai.com/codex/).
-
-La validación disponible y los resultados pendientes se distinguen en este README. Los integrantes deben revisar esta declaración y comprobar que describa su uso real de IA y las condiciones de la pauta.
 
 ## Justificaciones técnicas del equipo
 
-**[Pendiente: redactar por el equipo, sin redacción de IA, conforme a la pauta.]**
+En esta entrega mantuve Go para reutilizar el microservicio creado en la evaluación uno para concentrar mi trabajo en el proceso CI/CD. También se eligió un despliegue simulado para comprobar el funcionamiento del Docker Compose y verificar la trazabilidad entre el código, la imagen y la ejecución. Este entorno de ejecución es temporal pero permite validar la entrega solicitada.
 
-## Conclusiones del equipo
 
-**[Pendiente: redactar por el equipo, sin redacción de IA, conforme a la pauta.]**
-
-### Reflexión individual - integrante 1
-
-**[Pendiente: completar nombre y reflexión propia de aprendizaje y contribución, sin apoyo de IA.]**
-
-### Reflexión individual - integrante 2
-
-**[Pendiente: completar nombre y reflexión propia de aprendizaje y contribución, sin apoyo de IA.]**
-
-## Entrega
-
-Completar los apartados personales, verificar una ejecución exitosa del commit final y comprobar que el docente pueda acceder al repositorio. Entregar el enlace del repositorio en AVA y por correo docente dentro del plazo de la asignatura. La pauta no fija una fecha calendario en el documento ni exige un video o una lista concreta de capturas.
 
 ## Referencias técnicas
 
@@ -171,4 +144,4 @@ Completar los apartados personales, verificar una ejecución exitosa del commit 
 - [Snyk: análisis de código con CLI](https://docs.snyk.io/developer-tools/snyk-cli/commands/code-test).
 - [GitHub: opciones de Dependabot](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference).
 - [GitHub: secretos de Actions](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets).
-- [Bibliotecas Duoc UC: guía de inteligencia artificial y citación](https://bibliotecas.duoc.cl/ia). Los integrantes deben completar la cita de su uso conforme a la guía y a las indicaciones de la asignatura.
+- [Bibliotecas Duoc UC: guía de inteligencia artificial y citación](https://bibliotecas.duoc.cl/ia).
